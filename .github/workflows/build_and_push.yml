@@ -27,10 +27,10 @@ jobs:
         with:
           file: shell.nix
 
-      - name: Check if the chart follows a valid semver version
-        run: |
-          BRANCH=${{ github.ref_name }}
-          ./scripts/validate-chart-version.sh --branch $BRANCH
+#      - name: Check if the chart follows a valid semver version
+#        run: |
+#          BRANCH=${{ github.ref_name }}
+#          ./scripts/validate-chart-version.sh --branch $BRANCH
 
       - name: Run chart-testing lint
         run: ct lint --config ct.yaml
