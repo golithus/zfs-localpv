@@ -128,6 +128,67 @@ jobs:
           name: coverage-bdd_coverage-$(date +%s)
           flags: bddtests
 
+  bdd-tests-encrypted:
+    runs-on: ubuntu-22.04
+    needs: ["unit-tests"]
+    strategy:
+      fail-fast: true
+      matrix:
+        kubernetes: [v1.27.3]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go 1.20
+        uses: actions/setup-go@v4
+        with:
+          go-version: 1.20.14
+          cache: false
+
+      - name: Set go env
+        run: |
+          echo "GOPATH=$(go env GOPATH)" >> $GITHUB_ENV
+          echo "GOCACHE=$(go env GOCACHE)" >> $GITHUB_ENV
+
+      - name: Build images locally
+        run: make zfs-driver-image
+
+      - name: Install zfs utils
+        run: sudo apt-get install zfsutils-linux -y
+
+      - name: Setup Minikube-Kubernetes
+        uses: medyagh/setup-minikube@latest
+        with:
+          cache: false
+          minikube-version: 1.31.1
+          driver: none
+          kubernetes-version: ${{ matrix.kubernetes }}
+          cni: calico
+          start-args: "--install-addons=false"
+
+      - name: Setting environment variables
+        run: |
+          echo "KUBECONFIG=$HOME/.kube/config" >> $GITHUB_ENV
+
+      - name: bootstrap
+        run: make bootstrap
+
+      - name: Running encrypted volume clone test
+        env:
+          OPENEBS_NAMESPACE: "openebs"
+        run: |
+          ./ci/ci-test.sh load
+          ./ci/ci-test.sh install
+          cd tests && ginkgo -v -coverprofile=encrypted_coverage.txt -covermode=atomic --focus "Running encrypted volume creation test"
+
+      - name: Upload Encrypted Test Coverage Report
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./tests/encrypted_coverage.txt
+          name: coverage-encrypted-$(date +%s)
+          flags: encryptedtests
+
   csi-driver:
     runs-on: ubuntu-22.04
     needs: ["unit-tests"]
