@@ -130,7 +130,7 @@ jobs:
 
   csi-driver:
     runs-on: ubuntu-22.04
-    needs: ["bdd-tests"]
+    needs: ["unit-tests"]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
